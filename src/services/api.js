@@ -84,11 +84,14 @@ export const apiService = {
     },
 
     // Account API
-    getMyAccounts: () => api.get("/accounts/me"),
+getMyAccounts: () => api.get("/accounts/me"),
 
-    makeTransfer: (transferData) => api.post("/transactions", transferData),
+makeTransfer: (transferData) => api.post("/transactions", transferData),
 
-    makeDeposit: (depositData) => api.post("/transactions", depositData),
+makeDeposit: (depositData) => api.post("/transactions", depositData),
+
+makeWithdrawal: (withdrawalData) => api.post("/transactions", withdrawalData), // <-- pour le retrait
+
 
     // Transactions API
     getTransactions: (accountNumber, page = 0, size = 10) =>

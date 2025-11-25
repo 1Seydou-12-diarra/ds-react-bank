@@ -31,32 +31,36 @@ const Navbar = () => {
         <nav className="navbar">
             <div className="navbar-container">
                 <Link to="/" className="navbar-logo">
-                    Phegon Bank
+                    MobiBank
                 </Link>
                 <ul className="navbar-menu">
                     <li className="navbar-item">
-                        <Link to="/home" className="navbar-link">Home</Link>
+                        <Link to="/home" className="navbar-link">Accueil</Link>
                     </li>
                     {isAuthenticated ? (
                         <>
                             <li className="navbar-item">
                                 <Link to="/profile" className="navbar-link">Profile</Link>
                             </li>
-                            <li className="navbar-item">
-                                <Link to="/transfer" className="navbar-link">Transfer</Link>
+                              <li className="navbar-item">
+                                        <Link to="/deposit" className="navbar-link">Depôt</Link>
                             </li>
                             <li className="navbar-item">
-                                <Link to="/transactions" className="navbar-link">Transactions</Link>
+                                <Link to="/retrait" className="navbar-link">Retrait</Link>
+                            </li>
+                             <li className="navbar-item">
+                                <Link to="/transfer" className="navbar-link">Transfert</Link>
+                            </li>
+                            <li className="navbar-item">
+                                <Link to="/transactions" className="navbar-link">Historique Transactions</Link>
                             </li>
                             {(isAdmin || isAuditor) && (
                                 <>
                                     <li className="navbar-item">
-                                        <Link to="/auditor-dashboard" className="navbar-link">Auditor Dashboard</Link>
+                                        <Link to="/auditor-dashboard" className="navbar-link">TableauDeBord</Link>
                                     </li>
 
-                                    <li className="navbar-item">
-                                        <Link to="/deposit" className="navbar-link">Deposit</Link>
-                                    </li>
+                                  
                                 </>
                             )}
                             <li className="navbar-item">
@@ -64,17 +68,17 @@ const Navbar = () => {
                                     className="navbar-link logout-btn"
                                     onClick={handleLogout}
                                 >
-                                    Logout
+                                    Deconnexion
                                 </button>
                             </li>
                         </>
                     ) : (
                         <>
                             <li className="navbar-item">
-                                <Link to="/login" className="navbar-link">Login</Link>
+                                <Link to="/login" className="navbar-link"> Connexion </Link>
                             </li>
                             <li className="navbar-item">
-                                <Link to="/register" className="navbar-link">Register</Link>
+                                <Link to="/register" className="navbar-link">S'inscrire</Link>
                             </li>
                         </>
                     )}
@@ -84,10 +88,10 @@ const Navbar = () => {
             {showModal && (
                 <div className="modal-backdrop">
                     <div className="modal">
-                        <p>Are you sure you want to logout?</p>
+                        <p>Êtes-vous sûr de vouloir vous déconnecter?</p>
                         <div className="modal-actions">
-                            <button onClick={confirmLogout} className="btn-confirm">Yes</button>
-                            <button onClick={cancelLogout} className="btn-cancel">No</button>
+                            <button onClick={confirmLogout} className="btn-confirm">Oui</button>
+                            <button onClick={cancelLogout} className="btn-cancel">Non</button>
                         </div>
                     </div>
                 </div>

@@ -1,231 +1,174 @@
 import { useState, useEffect } from "react";
-import { apiService } from '../services/api';
-
-
-
+import { apiService } from "../services/api";
 
 const Transfer = () => {
-
     const [formData, setFormData] = useState({
-        amount: '',
-        accountNumber: '',
-        destinationAccountNumber: '',
-        description: ''
+        amount: "",
+        accountNumber: "",
+        destinationAccountNumber: "",
+        description: "",
     });
-
 
     const [userAccounts, setUserAccounts] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
+    const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
 
     const [destinationAccountInfo, setDestinationAccountInfo] = useState(null);
     const [verifyingAccount, setVerifyingAccount] = useState(false);
 
-
+    // FETCH USER ACCOUNTS
     useEffect(() => {
-
         const fetchUserAccounts = async () => {
             try {
-
                 const response = await apiService.getMyAccounts();
 
                 if (response.data.statusCode === 200) {
                     setUserAccounts(response.data.data);
 
                     if (response.data.data.length > 0) {
-                        setFormData(prev => ({
+                        setFormData((prev) => ({
                             ...prev,
-                            accountNumber: response.data.data[0].accountNumber
+                            accountNumber: response.data.data[0].accountNumber,
                         }));
                     }
                 }
-
-
             } catch (error) {
-                console.log(error)
+                console.log(error);
             }
-        }
-        fetchUserAccounts()
+        };
+
+        fetchUserAccounts();
     }, []);
 
-
-
-
+    // HANDLE INPUT CHANGE
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData({
             ...formData,
-            [name]: value
+            [name]: value,
         });
     };
 
-
-        const searchAccount = async () => {
-        if (!formData.accountNumber.trim()) {
-            setError('Please enter an account number');
-            return;
-        }
-
-        setSearchLoading(true);
-        setError('');
-        setAccountInfo(null);
-
-        try {
-
-            const response = await apiService.findAccountByAccountNumber(formData.accountNumber);
-            const account = response.data || [];
-
-            if (account.accountNumber) {
-                setAccountInfo(account);
-                setSuccess(`Account found: ${account.accountType} Account - ${account.accountNumber}`);
-                //fetch recent transactions
-                fetchRecentTransactions();
-            } else {
-                setError(response.error);
-            }
-        } catch (error) {
-            setError('Error searching for account' + error);
-            console.error('Account search error:', error);
-        } finally {
-            setSearchLoading(false);
-        }
-    };
-
-
-
+    // VERIFY DESTINATION ACCOUNT
     const verifyDestinationAccount = async () => {
         if (!formData.destinationAccountNumber.trim()) {
-            setError('Please enter a destination account number');
+            setError("Please enter a destination account number");
             return;
         }
 
         if (formData.accountNumber === formData.destinationAccountNumber) {
-            setError('Source and destination accounts cannot be the same');
+            setError("Source and destination accounts cannot be the same");
             return;
         }
 
         setVerifyingAccount(true);
-        setError('');
+        setError("");
         setDestinationAccountInfo(null);
 
         try {
+            const response = await apiService.findAccountByAccountNumber(
+                formData.destinationAccountNumber
+            );
 
-            const response = await apiService.findAccountByAccountNumber(formData.destinationAccountNumber);
-            const account = response.data || [];
+            const account = response?.data || {};
 
             if (account.accountNumber) {
                 setDestinationAccountInfo(account);
                 setSuccess(`Account verified: ${account.accountType} Account`);
             } else {
-                setError('Destination account not found. Please check the account number.');
+                setError("Destination account not found. Please check the account number.");
             }
         } catch (error) {
-            setError('Error verifying destination account ', error);
-            console.error('Account verification error:', error);
+            setError("Error verifying destination account");
+            console.error("Account verification error:", error);
         } finally {
             setVerifyingAccount(false);
         }
     };
 
-
+    // HANDLE SUBMIT (TRANSFER)
     const handleSubmit = async (e) => {
-
         e.preventDefault();
         setLoading(true);
-        setError('');
-        setSuccess('');
+        setError("");
+        setSuccess("");
 
-        // Validate form
         if (!formData.amount || !formData.destinationAccountNumber) {
-            setError('Please fill in all required fields');
+            setError("Please fill in all required fields");
             setLoading(false);
             return;
         }
 
         if (parseFloat(formData.amount) <= 0) {
-            setError('Amount must be greater than 0');
+            setError("Amount must be greater than 0");
             setLoading(false);
             return;
         }
 
         if (formData.accountNumber === formData.destinationAccountNumber) {
-            setError('Source and destination accounts cannot be the same');
+            setError("Source and destination accounts cannot be the same");
             setLoading(false);
             return;
         }
 
-
-        // Check if destination account is verified
         if (!destinationAccountInfo) {
-            setError('Please verify the destination account before transferring');
+            setError("Please verify the destination account before transferring");
             setLoading(false);
             return;
         }
 
+        const sourceAccount = userAccounts.find(
+            (acc) => acc.accountNumber === formData.accountNumber
+        );
 
-        // Check if source account has sufficient balance
-        const sourceAccount = userAccounts.find(acc => acc.accountNumber === formData.accountNumber);
         if (sourceAccount && parseFloat(formData.amount) > sourceAccount.balance) {
-            setError('Insufficient balance in source account');
+            setError("Insufficient balance in source account");
             setLoading(false);
             return;
         }
-
 
         try {
-
             const transferData = {
-                transactionType: 'TRANSFER',
+                transactionType: "TRANSFER",
                 amount: parseFloat(formData.amount),
                 accountNumber: formData.accountNumber,
                 destinationAccountNumber: formData.destinationAccountNumber,
-                description: formData.description || null
-            }
+                description: formData.description || null,
+            };
 
             const response = await apiService.makeTransfer(transferData);
 
-
             if (response.data.statusCode === 200) {
-                setSuccess('Transfer completed successfully!');
-                // Reset form
-                setFormData({
-                    amount: '',
-                    destinationAccountNumber: '',
-                    description: '',
-                    accountNumber: userAccounts[0]?.accountNumber || ''
-                });
+                setSuccess("Transfer completed successfully!");
 
+                setFormData({
+                    amount: "",
+                    destinationAccountNumber: "",
+                    description: "",
+                    accountNumber: userAccounts[0]?.accountNumber || "",
+                });
 
                 setDestinationAccountInfo(null);
 
-                // Refresh user data after successful transfer
                 setTimeout(() => {
                     window.location.reload();
                 }, 5000);
             } else {
-                setError(response.data.message || 'Transfer failed');
+                setError(response.data.message || "Transfer failed");
             }
-
         } catch (error) {
-            setError(error.response?.data?.message || 'An error occurred during transfer');
-
+            setError(error.response?.data?.message || "An error occurred during transfer");
         } finally {
-
             setLoading(false);
         }
-    }
-
-    const formatCurrency = (amount, currency = 'USD') => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: currency
-        }).format(amount);
     };
 
-
-
-
+    const formatCurrency = (amount, currency = "USD") =>
+        new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency,
+        }).format(amount);
 
     return (
         <div className="transfer-container">
@@ -234,11 +177,10 @@ const Transfer = () => {
             </div>
 
             <div className="transfer-content">
-
                 <div className="transfer-form-section">
-
                     {error && <div className="error-message">{error}</div>}
                     {success && <div className="success-message">{success}</div>}
+
                     <form onSubmit={handleSubmit} className="transfer-form">
                         <div className="form-group">
                             <label htmlFor="accountNumber">From Account</label>
@@ -249,16 +191,19 @@ const Transfer = () => {
                                 onChange={handleChange}
                                 required
                             >
-                                {userAccounts.map(account => (
+                                {userAccounts.map((account) => (
                                     <option key={account.id} value={account.accountNumber}>
-                                        {account.accountNumber} - {account.accountType} ({account.currency} {account.balance.toFixed(2)})
+                                        {account.accountNumber} - {account.accountType} (
+                                        {account.currency} {account.balance.toFixed(2)})
                                     </option>
                                 ))}
                             </select>
                         </div>
 
                         <div className="form-group">
-                            <label htmlFor="destinationAccountNumber">Destination Account Number *</label>
+                            <label htmlFor="destinationAccountNumber">
+                                Destination Account Number *
+                            </label>
                             <input
                                 type="text"
                                 id="destinationAccountNumber"
@@ -275,7 +220,7 @@ const Transfer = () => {
                                 onClick={verifyDestinationAccount}
                                 disabled={verifyingAccount || !formData.destinationAccountNumber}
                             >
-                                {verifyingAccount ? 'Verifying...' : 'Verify'}
+                                {verifyingAccount ? "Verifying..." : "Verify"}
                             </button>
                         </div>
 
@@ -283,9 +228,24 @@ const Transfer = () => {
                             <div className="account-info">
                                 <h4>Destination Account Verified</h4>
                                 <div className="account-details">
-                                    <p><strong>Account Type:</strong> {destinationAccountInfo.accountType}</p>
-                                    <p><strong>Account Number:</strong> {destinationAccountInfo.accountNumber}</p>
-                                    <p><strong>Status:</strong> <span className={`status ${destinationAccountInfo.status.toLowerCase()}`}>{destinationAccountInfo.status}</span></p>
+                                    <p>
+                                        <strong>Account Type:</strong>{" "}
+                                        {destinationAccountInfo.accountType}
+                                    </p>
+                                    <p>
+                                        <strong>Account Number:</strong>{" "}
+                                        {destinationAccountInfo.accountNumber}
+                                    </p>
+                                    <p>
+                                        <strong>Status:</strong>{" "}
+                                        <span
+                                            className={`status ${
+                                                destinationAccountInfo?.status?.toLowerCase() || ""
+                                            }`}
+                                        >
+                                            {destinationAccountInfo?.status || "N/A"}
+                                        </span>
+                                    </p>
                                 </div>
                             </div>
                         )}
@@ -303,12 +263,16 @@ const Transfer = () => {
                                 step="0.01"
                                 required
                             />
-                            {formData
-                            .amount && (
+
+                            {formData.amount && (
                                 <div className="balance-check">
                                     <small>
-                                        Available: {formatCurrency(
-                                            userAccounts.find(acc => acc.accountNumber === formData.accountNumber)?.balance || 0
+                                        Available:{" "}
+                                        {formatCurrency(
+                                            userAccounts.find(
+                                                (acc) =>
+                                                    acc.accountNumber === formData.accountNumber
+                                            )?.balance || 0
                                         )}
                                     </small>
                                 </div>
@@ -332,27 +296,24 @@ const Transfer = () => {
                             className="btn btn-primary transfer-btn"
                             disabled={loading}
                         >
-                            {loading ? 'Processing Transfer...' : 'Transfer Money'}
+                            {loading ? "Processing Transfer..." : "Transfer Money"}
                         </button>
                     </form>
                 </div>
 
                 <div className="transfer-guidelines">
-                    <h3>Transfer Guidelines</h3>
+                    <h3>Instructions pour les virements</h3>
                     <ul>
-                        <li>Transfers are processed instantly</li>
-                        <li>Ensure the destination account number is correct</li>
-                        <li>Double-check the amount before confirming</li>
-                        <li>Transfers cannot be reversed once processed</li>
-                        <li>Contact support if you encounter any issues</li>
+                        <li>Les virements sont traités instantanément</li>
+                        <li>Assurez-vous que le numéro du compte bénéficiaire est correct</li>
+                        <li>Vérifiez attentivement le montant avant de confirmer</li>
+                        <li>Les virements ne peuvent pas être annulés une fois traités</li>
+                        <li>Contactez le support en cas de problème</li>
                     </ul>
                 </div>
-
             </div>
         </div>
     );
-
-
-}
+};
 
 export default Transfer;

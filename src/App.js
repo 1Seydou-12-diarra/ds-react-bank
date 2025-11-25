@@ -14,6 +14,8 @@ import Transfer from "./pages/Transfer";
 import AuditorDashboard from "./pages/AuditorDashboard";
 import { AuditorRoute, CustomerRoute } from "./services/Guard";
 import Deposit from "./pages/Deposit";
+import Retrait from "./pages/Retrait";
+
 
 
 
@@ -36,6 +38,8 @@ function App() {
 
         <Route path="/transactions" element={<CustomerRoute element={<Transactions />} />} />
         <Route path="/transfer" element={<CustomerRoute element={<Transfer />} />} />
+        <Route path="/retrait" element={<CustomerRoute element={<Retrait />} />} />
+
 
 
         <Route path="/auditor-dashboard" element={<AuditorRoute element={<AuditorDashboard />} />} />

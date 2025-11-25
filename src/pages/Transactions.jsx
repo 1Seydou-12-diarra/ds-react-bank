@@ -1,16 +1,12 @@
 import { useEffect, useState } from "react";
 import { apiService } from "../services/api";
 
-
-
 const Transactions = () => {
-
-
     const [transactions, setTransactions] = useState([]);
-    const [selectedAccount, setSelectedAccount] = useState('');
+    const [selectedAccount, setSelectedAccount] = useState("");
     const [userAccounts, setUserAccounts] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
+    const [error, setError] = useState("");
 
     const [pagination, setPagination] = useState({
         currentPage: 0,
@@ -19,62 +15,74 @@ const Transactions = () => {
         totalItems: 0
     });
 
-
+    // Fetch accounts on page load
     useEffect(() => {
         const fetchUserAccounts = async () => {
             try {
                 const response = await apiService.getMyAccounts();
-                if (response.data.statusCode === 200) {
-                    setUserAccounts(response.data.data);
-                    setSelectedAccount(response.data.data[0].accountNumber);
-                }
 
-            } catch (error) {
-                console.log(error)
+                if (response.data?.statusCode === 200) {
+                    const accounts = response.data.data;
+
+                    setUserAccounts(accounts);
+
+                    if (accounts.length > 0) {
+                        setSelectedAccount(accounts[0].accountNumber);
+                    }
+                }
+            } catch (err) {
+                console.error(err);
+                setError("Unable to load accounts");
             }
-        }
+        };
 
         fetchUserAccounts();
-    }, [])
+    }, []);
 
-
-
+    // Reset transactions when account changes
     useEffect(() => {
-
         if (selectedAccount) {
+            setTransactions([]); // IMPORTANT: reset list
             fetchTransactions(selectedAccount, 0);
         }
-
     }, [selectedAccount]);
 
-
     const fetchTransactions = async (accountNumber, page) => {
-
         setLoading(true);
-        setError('');
+        setError("");
 
         try {
             const response = await apiService.getTransactions(accountNumber, page, pagination.pageSize);
-            if (response.data.statusCode === 200) {
-                setTransactions(response.data.data);
+
+            if (response.data?.statusCode === 200) {
+
+                // ✔ Ajouter les nouvelles transactions
+                setTransactions(prev =>
+                    page === 0
+                        ? response.data.data         // première page → remplace
+                        : [...prev, ...response.data.data] // autres pages → ajoute
+                );
+
+                const meta = response.data.meta;
+
                 setPagination({
-                    currentPage: response.data.meta.currentPage,
-                    totalPages: response.data.meta.totalPages,
-                    pageSize: response.data.meta.pageSize,
-                    totalItems: response.data.meta.totalItems
+                    currentPage: meta.currentPage,
+                    totalPages: meta.totalPages || meta.totalPage,
+                    pageSize: meta.pageSize,
+                    totalItems: meta.totalItems
                 });
             } else {
-                setError(response.data.message);
+                setError(response.data?.message || "Failed to fetch transactions");
             }
-
         } catch (error) {
-            setError(error.response?.data?.message || 'An error occurred while fetching transactions');
-
+            setError(
+                error.response?.data?.message ||
+                "An error occurred while fetching transactions"
+            );
         } finally {
-            setLoading(false)
+            setLoading(false);
         }
-    }
-
+    };
 
     const handleAccountChange = (e) => {
         setSelectedAccount(e.target.value);
@@ -91,24 +99,16 @@ const Transactions = () => {
     };
 
     const formatAmount = (amount, type, destinationAccount) => {
-        let sign = '-';
+        let sign = "-";
 
-        if (type === 'DEPOSIT') {
-            sign = '+';
-        }
-        else if (type === 'TRANSFER' && destinationAccount === selectedAccount) {
-            sign = '+';
-        }
+        if (type === "DEPOSIT") sign = "+";
+        else if (type === "TRANSFER" && destinationAccount === selectedAccount) sign = "+";
 
         return `${sign}$${Math.abs(amount).toFixed(2)}`;
     };
 
-
-
-
     return (
         <div className="transactions-container">
-
             <div className="transactions-header">
                 <h1>Transaction History</h1>
             </div>
@@ -116,6 +116,7 @@ const Transactions = () => {
             <div className="transactions-content">
                 {error && <div className="error-message">{error}</div>}
 
+                {/* Account Selector */}
                 <div className="account-selector">
                     <label htmlFor="accountSelect">Select Account:</label>
                     <select
@@ -124,7 +125,7 @@ const Transactions = () => {
                         onChange={handleAccountChange}
                         disabled={loading}
                     >
-                        {userAccounts.map(account => (
+                        {userAccounts.map((account) => (
                             <option key={account.id} value={account.accountNumber}>
                                 {account.accountNumber} - {account.accountType}
                             </option>
@@ -132,48 +133,68 @@ const Transactions = () => {
                     </select>
                 </div>
 
+                {/* Loading Spinner */}
                 {loading ? (
                     <div className="loading">Loading transactions...</div>
                 ) : (
                     <>
-
+                        {/* Transactions List */}
                         <div className="transactions-list">
                             {transactions.length === 0 ? (
                                 <div className="no-transactions">
                                     No transactions found for this account
                                 </div>
                             ) : (
-                                transactions.map(transaction => (
+                                transactions.map((transaction) => (
                                     <div key={transaction.id} className="transaction-item">
                                         <div className="transaction-main">
-                                            <div className="transaction-type">{transaction.transactionType}</div>
-
-                                            <div className={`transaction-amount ${transaction.transactionType === 'DEPOSIT' ||
-                                                (transaction.transactionType === 'TRANSFER' && transaction.destinationAccount === selectedAccount)
-                                                ? 'deposit'
-                                                : 'withdrawal'
-                                                }`}>
-                                                {formatAmount(transaction.amount, transaction.transactionType, transaction.destinationAccount)}
+                                            <div className="transaction-type">
+                                                {transaction.transactionType}
                                             </div>
 
+                                            <div
+                                                className={`transaction-amount ${
+                                                    transaction.transactionType === "DEPOSIT" ||
+                                                    (transaction.transactionType === "TRANSFER" &&
+                                                        transaction.destinationAccount === selectedAccount)
+                                                        ? "deposit"
+                                                        : "withdrawal"
+                                                }`}
+                                            >
+                                                {formatAmount(
+                                                    transaction.amount,
+                                                    transaction.transactionType,
+                                                    transaction.destinationAccount
+                                                )}
+                                            </div>
                                         </div>
+
                                         <div className="transaction-details">
-                                            <div className="transaction-date">{formatDate(transaction.transactionDate)}</div>
-                                            <div className="transaction-description">{transaction.description}</div>
-                                            <div className="transaction-status">{transaction.status}</div>
-                                            {transaction.sourceAccount && transaction.destinationAccount && (
-                                                <div className="transaction-accounts">
-                                                    From: {transaction.sourceAccount} → To: {transaction.destinationAccount}
-                                                </div>
-                                            )}
+                                            <div className="transaction-date">
+                                                {formatDate(transaction.transactionDate)}
+                                            </div>
+                                            <div className="transaction-description">
+                                                {transaction.description}
+                                            </div>
+                                            <div className="transaction-status">
+                                                {transaction.status}
+                                            </div>
+
+                                            {transaction.sourceAccount &&
+                                                transaction.destinationAccount && (
+                                                    <div className="transaction-accounts">
+                                                        From: {transaction.sourceAccount} → To:{" "}
+                                                        {transaction.destinationAccount}
+                                                    </div>
+                                                )}
                                         </div>
                                     </div>
                                 ))
                             )}
                         </div>
 
-
-                        {pagination.totalPages > 0 && (
+                        {/* Pagination */}
+                        {pagination.totalPages > 1 && (
                             <div className="pagination">
                                 <button
                                     onClick={() => handlePageChange(pagination.currentPage - 1)}
@@ -182,9 +203,12 @@ const Transactions = () => {
                                 >
                                     Previous
                                 </button>
+
                                 <span className="pagination-info">
-                                    Page {pagination.currentPage + 1} of {pagination.totalPages}
+                                    Page {pagination.currentPage + 1} of{" "}
+                                    {pagination.totalPages}
                                 </span>
+
                                 <button
                                     onClick={() => handlePageChange(pagination.currentPage + 1)}
                                     disabled={pagination.currentPage === pagination.totalPages - 1}
@@ -196,13 +220,9 @@ const Transactions = () => {
                         )}
                     </>
                 )}
-
             </div>
-
         </div>
-    )
-
-
-}
+    );
+};
 
 export default Transactions;

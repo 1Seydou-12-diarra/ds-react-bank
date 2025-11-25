@@ -1,9 +1,6 @@
 import { useState } from 'react';
 import { apiService } from '../services/api';
 
-
-
-
 const Deposit = () => {
 
     const [formData, setFormData] = useState({
@@ -12,7 +9,6 @@ const Deposit = () => {
         description: ''
     });
 
-
     const [recentTransactions, setRecentTransactions] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
@@ -20,16 +16,12 @@ const Deposit = () => {
     const [searchLoading, setSearchLoading] = useState(false);
     const [accountInfo, setAccountInfo] = useState(null);
 
-
-
     const handleChange = (e) => {
         setFormData({
             ...formData,
             [e.target.name]: e.target.value
         });
     };
-
-
 
     const searchAccount = async () => {
         if (!formData.accountNumber.trim()) {
@@ -42,27 +34,22 @@ const Deposit = () => {
         setAccountInfo(null);
 
         try {
-
             const response = await apiService.findAccountByAccountNumber(formData.accountNumber);
-            const account = response.data || [];
+            const account = response.data || {};
 
             if (account.accountNumber) {
                 setAccountInfo(account);
                 setSuccess(`Account found: ${account.accountType} Account - ${account.accountNumber}`);
-                //fetch recent transactions
                 fetchRecentTransactions();
             } else {
-                setError(response.error);
+                setError(response.error || "Account not found");
             }
         } catch (error) {
-            setError('Error searching for account' + error);
-            console.error('Account search error:', error);
+            setError('Error searching for account: ' + error);
         } finally {
             setSearchLoading(false);
         }
     };
-
-
 
     const fetchRecentTransactions = async () => {
         try {
@@ -77,7 +64,6 @@ const Deposit = () => {
         }
     };
 
-
     const formatCurrency = (amount, currency = 'USD') => {
         return new Intl.NumberFormat('en-US', {
             style: 'currency',
@@ -89,17 +75,12 @@ const Deposit = () => {
         return new Date(dateString).toLocaleString();
     };
 
-
-
-
     const handleSubmit = async (e) => {
-
         e.preventDefault();
         setLoading(true);
         setError('');
         setSuccess('');
 
-        // Validation
         if (!formData.accountNumber.trim()) {
             setError('Account number is required');
             setLoading(false);
@@ -131,20 +112,18 @@ const Deposit = () => {
             if (response.data.statusCode === 200) {
                 setSuccess(`Successfully deposited $${formData.amount} to account ${formData.accountNumber}`);
 
-                // Reset form
                 setFormData({
-                    accountNumber: formData.accountNumber, // Keep account number for multiple deposits
+                    accountNumber: formData.accountNumber,
                     amount: '',
                     description: ''
                 });
 
-                // Refresh recent transactions
                 fetchRecentTransactions();
 
-                // Clear success message after 5 seconds
                 setTimeout(() => {
                     setSuccess('');
                 }, 5000);
+
             } else {
                 setError(response.data.message || 'Deposit failed');
             }
@@ -154,10 +133,6 @@ const Deposit = () => {
             setLoading(false);
         }
     };
-
-
-
-
 
     return (
         <div className="admin-deposit-container">
@@ -203,7 +178,12 @@ const Deposit = () => {
                                     <div className="account-details">
                                         <p><strong>Type:</strong> {accountInfo.accountType}</p>
                                         <p><strong>Balance:</strong> {formatCurrency(accountInfo.balance, accountInfo.currency)}</p>
-                                        <p><strong>Status:</strong> <span className={`status ${accountInfo.status.toLowerCase()}`}>{accountInfo.status}</span></p>
+                                        <p>
+                                            <strong>Status:</strong>
+                                            <span className={`status ${accountInfo.status?.toLowerCase?.() || ''}`}>
+                                                {accountInfo.status || 'Unknown'}
+                                            </span>
+                                        </p>
                                     </div>
                                 </div>
                             )}
@@ -299,7 +279,6 @@ const Deposit = () => {
             </div>
         </div>
     );
-
-}
+};
 
 export default Deposit;
